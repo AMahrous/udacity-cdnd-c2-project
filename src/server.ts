@@ -1,6 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import {filterImageFromURL, deleteLocalFiles} from './util/util';
+//import isImageURL from 'image-url-validator';
 
 (async () => {
 
@@ -33,8 +34,42 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
   
   // Root Endpoint
   // Displays a simple message to the user
-  app.get( "/", async ( req, res ) => {
-    res.send("try GET /filteredimage?image_url={{}}")
+  app.get( "/filteredimage", async ( req, res ) => {
+    let { image_url } = req.query;
+
+    if ( !image_url ) {
+      return res.status(400).send(`Please insert a url...!`);
+    }
+
+
+    const extension:string = image_url.toString().substring(image_url.length-4);
+    console.log(`
+      url:
+      ${image_url}
+      extension:
+      ${extension}`);
+    
+    if(extension === '.jpg' || extension === '.png' || extension === '.jpeg' || extension === '.pgm')
+    {
+      const filteredImage = (await filterImageFromURL(image_url));
+      
+      return res.status(200).sendFile(filteredImage, function (err) {
+        if (err) {
+          console.log('Error!');
+        } else {
+            console.log('Sent');
+            const localFiles = [filteredImage];
+            deleteLocalFiles(localFiles);
+        }});
+      
+    }
+    else
+    {
+      return res.status(400).send(`Not a valid image url:
+      ${image_url}`);
+    }
+
+
   } );
   
 
