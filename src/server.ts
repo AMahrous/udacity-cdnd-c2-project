@@ -57,10 +57,7 @@ import { bool } from 'aws-sdk/clients/signer';
     {
       await isImageURL(image_url).then(async (is_image:boolean) =>
       {
-        if(!is_image)
-        {
-          return res.status(400).send(`This is NOT a valid image url:\n${image_url}`);
-        }
+        
 
         //Pass the url to the image filter.
         const filteredImage:string = (await filterImageFromURL(image_url)).toString();
