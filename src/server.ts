@@ -1,7 +1,10 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import {filterImageFromURL, deleteLocalFiles} from './util/util';
-//import isImageURL from 'image-url-validator';
+import { resolve } from 'bluebird';
+import e from 'express';
+import { bool } from 'aws-sdk/clients/signer';
+
 
 (async () => {
 
@@ -34,43 +37,53 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
   
   // Root Endpoint
   // Displays a simple message to the user
-  app.get( "/filteredimage", async ( req, res ) => {
+  app.get( "/", async ( req, res ) => {
+    res.send(`try GET /filteredimage?image_url={{}}\n\nSignature:\nAhmed Mahrous Mahmoud`)
+  } );
+
+  //! END @TODO1
+  app.get( "/filteredimage", async ( req, res ) => 
+  {
     let { image_url } = req.query;
 
-    if ( !image_url ) {
+    if ( !image_url ) 
+    {
       return res.status(400).send(`Please insert a url...!`);
     }
 
-
-    const extension:string = image_url.toString().substring(image_url.length-4);
-    console.log(`
-      url:
-      ${image_url}
-      extension:
-      ${extension}`);
-    
-    if(extension === '.jpg' || extension === '.png' || extension === '.jpeg' || extension === '.pgm')
+    //Check whether the url is for an image file.
+    const isImageURL = require('image-url-validator').default;
+    try
     {
-      const filteredImage = (await filterImageFromURL(image_url));
-      
-      return res.status(200).sendFile(filteredImage, function (err) {
-        if (err) {
-          console.log('Error!');
-        } else {
-            console.log('Sent');
+      await isImageURL(image_url).then(async (is_image:boolean) =>
+      {
+        if(!is_image)
+        {
+          return res.status(400).send(`This is NOT a valid image url:\n${image_url}`);
+        }
+
+        //Pass the url to the image filter.
+        const filteredImage:string = (await filterImageFromURL(image_url)).toString();
+        
+        //Send back the filtered image to the user.S
+        return res.status(200).sendFile(filteredImage,
+        function ()
+        {
             const localFiles = [filteredImage];
             deleteLocalFiles(localFiles);
-        }});
-      
-    }
-    else
+        }
+        );
+      }
+      );
+    } 
+
+    catch(error)
     {
-      return res.status(400).send(`Not a valid image url:
-      ${image_url}`);
+      return res.status(400).send(`Failed due to: ${error}`)
     }
-
-
-  } );
+  }
+  );
+    
   
 
   // Start the Server
